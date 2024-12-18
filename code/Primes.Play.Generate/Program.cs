@@ -1,10 +1,42 @@
-﻿// See https://aka.ms/new-console-template for more information
-using System.Text.Json;
+﻿using System.Diagnostics;
 using Primes.Play.Generate;
 
 Console.WriteLine("Generation begins!");
-Double startNumber = 0;
-var rangeLength = 10000;
+ulong startNumber = 0;
+ulong rangeLength = 10000;
+
+/*
+ If the Prime Processors function loooks like this:
+     private static bool IsPrime(ulong number)
+    {
+        if (double.IsEvenInteger(number)) return false;
+        if (number == 1) return false;
+        if (number == 2) return true;
+
+        var limit = Math.Ceiling(Math.Sqrt(number)); //hoisting the loop limit
+
+        for (int i = 2; i <= limit; ++i)
+        {
+            if (number % (ulong)i == 0) return false;
+        }
+
+        return true;
+    }
+ On my kit as at today the maximum yielded prime number (when at or beyond 8 threads for the available processors) is: 
+ 9007199254740881
+
+ If I make a slight improvement to the efficient of the code - I get bigger prime numbers!
+ Specifically:
+        if (double.IsEvenInteger(number)) return false; ------->        if (ulong.IsEvenInteger(number)) return false;
+ 
+ 
+ 9007199254748399
+calculates this ^^^^ (greater/higher) Prime cleanly (and beyond!)
+
+
+
+*/
+
 
 // Find the biggest number for which we have generated
 DirectoryInfo dir = new(".");
@@ -14,24 +46,16 @@ if (topMostFile != null)
 {
     string? truncatedName = topMostFile.Name.Replace(".json", string.Empty);
 
-    if (Double.TryParse(truncatedName, out startNumber))
+    if (ulong.TryParse(truncatedName, out startNumber))
     {
         startNumber += rangeLength;
     }
 }
 
-// Generate Primes for sections of 100k, for 800 more sections
-var maxNumber = startNumber + (800 * rangeLength);
+var stopWatch = new Stopwatch();
+stopWatch.Start();
+new Engine().Run(startNumber, rangeLength, 3);
+stopWatch.Stop();
 
-while (startNumber < maxNumber)
-{
-    var processed = Processor.Process(startNumber, rangeLength);
-    var wrappedProcessorOutput = new { startNumber, rangeLength, count = processed.Count(), processed };
-    var json = JsonSerializer.Serialize(wrappedProcessorOutput);
-    var outputfilename = string.Format(@"{0}.json", startNumber);
-    File.WriteAllText(outputfilename, json);
-    startNumber += rangeLength;
-}
-
-Console.WriteLine("Generation ends!");
+Console.WriteLine("Generation ends after {0}h{1:00}m{2:00}s seconds!", stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds);
 

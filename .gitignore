@@ -2,5 +2,6 @@
 
 **/obj
 **/bin
+**/temp
 
 *.zip
