@@ -1,10 +1,6 @@
 ﻿using System.Diagnostics;
 using Primes.Play.Generate;
 
-Console.WriteLine("Generation begins!");
-ulong startNumber = 0;
-ulong rangeLength = 10000;
-
 /*
  If the Prime Processors function loooks like this:
      private static bool IsPrime(ulong number)
@@ -37,25 +33,41 @@ calculates this ^^^^ (greater/higher) Prime cleanly (and beyond!)
 
 */
 
-
-// Find the biggest number for which we have generated
-DirectoryInfo dir = new(".");
-FileInfo topMostFile = dir.GetFiles("*.json").OrderByDescending(p => p.CreationTime).First();
-
-if (topMostFile != null)
+if (args.Length > 0 && string.Equals(args[0], "Pattern"))
 {
-    string? truncatedName = topMostFile.Name.Replace(".json", string.Empty);
+    Console.WriteLine("Generation begins - generating against standard pattern!");
 
-    if (ulong.TryParse(truncatedName, out startNumber))
-    {
-        startNumber += rangeLength;
-    }
+    var stopWatch = new Stopwatch();
+    stopWatch.Start();
+    new Engine().Run();
+    stopWatch.Stop();
+
+    Console.WriteLine("Generation ends after {0}h{1:00}m{2:00}s seconds!", stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds);
 }
+else
+{
+    Console.WriteLine("Generation begins - continuing file based series!");
+    ulong startNumber = 0;
+    ulong rangeLength = 10000;
 
-var stopWatch = new Stopwatch();
-stopWatch.Start();
-new Engine().Run(startNumber, rangeLength, 3);
-stopWatch.Stop();
+    // Find the biggest number for which we have generated
+    DirectoryInfo dir = new(".");
+    FileInfo topMostFile = dir.GetFiles("*.json").OrderByDescending(p => p.CreationTime).First();
 
-Console.WriteLine("Generation ends after {0}h{1:00}m{2:00}s seconds!", stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds);
+    if (topMostFile != null)
+    {
+        string? truncatedName = topMostFile.Name.Replace(".json", string.Empty);
 
+        if (ulong.TryParse(truncatedName, out startNumber))
+        {
+            startNumber += rangeLength;
+        }
+    }
+
+    var stopWatch = new Stopwatch();
+    stopWatch.Start();
+    new Engine().Run(startNumber, rangeLength, 3);
+    stopWatch.Stop();
+
+    Console.WriteLine("Generation ends after {0}h{1:00}m{2:00}s seconds!", stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds);
+}

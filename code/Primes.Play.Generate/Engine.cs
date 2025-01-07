@@ -24,7 +24,37 @@ public class Engine
             ranges.Add(new RunRange { StartNumber = startNumber + ((ulong)runNumber * rangeLength), RangeLength = rangeLength });
         }
 
-        var integerPortion = (ulong)startNumber;
+        this.RunInternal(ranges);
+    }
+
+    public void Run()
+    {
+        // Create the ranges for each thread
+        var ranges = new List<RunRange>
+        {
+            new() { StartNumber = 0, RangeLength = 10000 },
+            new() { StartNumber = 100000, RangeLength = 10000 },
+            new() { StartNumber = 1000000, RangeLength = 10000 },
+            new() { StartNumber = 10000000, RangeLength = 10000 },
+            new() { StartNumber = 100000000, RangeLength = 10000 },
+            new() { StartNumber = 1000000000, RangeLength = 10000 },
+            new() { StartNumber = 10000000000, RangeLength = 10000 },
+            new() { StartNumber = 100000000000, RangeLength = 10000 },
+            new() { StartNumber = 1000000000000, RangeLength = 10000 },
+            new() { StartNumber = 10000000000000, RangeLength = 10000 },
+            new() { StartNumber = 100000000000000, RangeLength = 10000 },
+            new() { StartNumber = 1000000000000000, RangeLength = 10000 },
+            new() { StartNumber = 10000000000000000, RangeLength = 10000 },
+            new() { StartNumber = 100000000000000000, RangeLength = 10000 },
+            new() { StartNumber = 1000000000000000000, RangeLength = 10000 }
+        };
+
+        this.RunInternal(ranges);
+    }
+
+    private void RunInternal(IEnumerable<RunRange> ranges)
+    {
+        var integerPortion = (ulong)ranges.First().StartNumber;
         var json = JsonSerializer.Serialize(ranges);
         var outputFileName = $"{integerPortion}-ranges.json";
         lock (typeof(Engine))
@@ -45,7 +75,6 @@ public class Engine
             }
         });
     }
-
 
     private static void ProcessAndSave(ulong startNumber, ulong rangeLength)
     {
