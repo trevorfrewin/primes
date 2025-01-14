@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 using Primes.Play.Generate;
 
 /*
@@ -23,26 +25,69 @@ using Primes.Play.Generate;
 
  If I make a slight improvement to the efficient of the code - I get bigger prime numbers!
  Specifically:
-        if (double.IsEvenInteger(number)) return false; ------->        if (ulong.IsEvenInteger(number)) return false;
- 
- 
- 9007199254748399
-calculates this ^^^^ (greater/higher) Prime cleanly (and beyond!)
-
-
+    if (double.IsEvenInteger(number)) return false; ------->        if (ulong.IsEvenInteger(number)) return false;
+ After this change the maximum prime number yielded is:
+    (approximately!) 4612000000000000000
+ which is a useful illustration of the impact of casting (and/or using the incorrect scalar utility function)
 
 */
 
-if (args.Length > 0 && string.Equals(args[0], "Pattern"))
+if (args.Length > 0)
 {
-    Console.WriteLine("Generation begins - generating against standard pattern!");
+    if (string.Equals(args[0], "Pattern"))
+    {
+        Console.WriteLine("Generation begins - generating against standard pattern!");
 
-    var stopWatch = new Stopwatch();
-    stopWatch.Start();
-    new Engine().Run();
-    stopWatch.Stop();
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+        new Engine().Run();
+        stopWatch.Stop();
 
-    Console.WriteLine("Generation ends after {0}h{1:00}m{2:00}s seconds!", stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds);
+        Console.WriteLine("Generation ends after {0}h{1:00}m{2:00}s seconds!", stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds);
+    }
+
+    if (string.Equals(args[0], "Summarise"))
+    {
+        Console.WriteLine("Summarising results!");
+
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        DirectoryInfo dir = new(".");
+        var allResultsFiles = dir.GetFiles("*.json");
+        List<PrimesSummary> results = [];
+
+        foreach (var fileInfo in allResultsFiles)
+        {
+            dynamic formattedContent = await JsonFileReader.ReadAsync<dynamic>(fileInfo.FullName);
+
+            try
+            {
+                results.Add(new PrimesSummary(
+                    ((JsonElement)formattedContent).GetProperty("startNumber").GetUInt64(),
+                    ((JsonElement)formattedContent).GetProperty("rangeLength").GetUInt64(),
+                    ((JsonElement)formattedContent).GetProperty("count").GetUInt64()));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Unsupported JSON file found (ignored): {0}", fileInfo.FullName);
+                Console.WriteLine(" Ex: {0}-{1}", ex.GetType().Name, ex.Message);
+            }
+        }
+        stopWatch.Stop();
+
+        var resultsCSVString = new StringBuilder();
+        resultsCSVString.AppendLine("StartNumber\tCount\tRangeLenth");
+
+        foreach(var result in results)
+        {
+            resultsCSVString.AppendLine(string.Format("{0}\t{1}\t{2}", result.StartNumber, result.Count, result.RangeLength));
+        }
+
+        File.WriteAllText("./summary.csv", resultsCSVString.ToString());
+
+        Console.WriteLine("Summarising ends after {0}h{1:00}m{2:00}s seconds!", stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds);
+    }
 }
 else
 {
@@ -70,4 +115,31 @@ else
     stopWatch.Stop();
 
     Console.WriteLine("Generation ends after {0}h{1:00}m{2:00}s seconds!", stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds);
+}
+
+internal class PrimesSummary
+{
+    internal PrimesSummary(ulong startNumber, ulong rangeLength, ulong count)
+    {
+        StartNumber = startNumber;
+        RangeLength = rangeLength;
+        Count = count;
+    }
+
+    internal readonly ulong StartNumber;
+
+    internal readonly ulong RangeLength;
+
+    internal readonly ulong Count;
+}
+
+internal static class JsonFileReader
+{
+    public static async Task<T> ReadAsync<T>(string filePath)
+    {
+        using FileStream stream = File.OpenRead(filePath);
+#pragma warning disable CS8603 // Possible null reference return.
+        return await JsonSerializer.DeserializeAsync<T>(stream);
+#pragma warning restore CS8603 // Possible null reference return.
+    }
 }
